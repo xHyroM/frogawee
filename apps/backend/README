@@ -1,0 +1,6 @@
+User Endpoints:
+- /users/$ID/
+
+Class Endpoints:
+- /classes/$ID
+  - /students

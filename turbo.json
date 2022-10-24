@@ -8,6 +8,9 @@
     "lint": {
       "outputs": []
     },
+    "nest:dev": {
+      "cache": false
+    },
     "dev": {
       "cache": false
     }
