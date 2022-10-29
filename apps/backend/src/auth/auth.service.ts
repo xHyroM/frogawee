@@ -7,7 +7,7 @@ import { compare, hash } from 'hash';
 export class AuthService {
   constructor(
     private usersService: UsersService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
   ) {}
 
   async validateUser(username: string, pass: string): Promise<any> {
@@ -28,8 +28,8 @@ export class AuthService {
 
   async register(user: User) {
     const exist = await this.usersService.findOne(user.username);
-    if (exist) throw new HttpException('User already exists', HttpStatus.BAD_REQUEST);
-
+    if (exist)
+      throw new HttpException('User already exists', HttpStatus.BAD_REQUEST);
 
     this.usersService.register({
       username: user.username,
