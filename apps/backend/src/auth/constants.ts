@@ -1,5 +1,1 @@
-// TODO: replace with env variable
-export const jwtConstants = {
-  accessSecret: 'secretKey',
-  refreshSecret: 'refreshSecretKey',
-};
+export default { secret: 'loool' };

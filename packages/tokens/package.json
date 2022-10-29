@@ -1,0 +1,17 @@
+{
+  "name": "tokens",
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "types": "./index.ts",
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint *.ts*",
+    "build": "tsc -p ."
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-custom": "workspace:*",
+    "tsconfig": "workspace:*",
+    "typescript": "^4.5.2"
+  }
+}

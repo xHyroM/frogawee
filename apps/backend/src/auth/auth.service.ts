@@ -1,15 +1,12 @@
-import { PartialUser, UsersService } from '../users/users.service';
+import { PartialUser, User, UsersService } from '../users/users.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { compare, hash } from 'hash';
-import { jwtConstants } from './constants';
+import { generate } from 'tokens';
+import constants from './constants';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService,
-  ) {}
+  constructor(private usersService: UsersService) {}
 
   async register(user: PartialUser) {
     const exist = await this.usersService.findByUsername(user.username);
@@ -18,9 +15,12 @@ export class AuthService {
 
     const newUser = await this.usersService.create(user);
 
-    const tokens = await this.getTokens(newUser.id, newUser.username);
-    await this.updateRefreshToken(newUser.id, tokens.refreshToken);
-    return tokens;
+    const token = await this.getToken(newUser);
+    (await this.usersService.findById(newUser.id)).token = await hash(token);
+
+    return {
+      accessToken: token,
+    };
   }
 
   async login(data: PartialUser) {
@@ -34,66 +34,25 @@ export class AuthService {
     if (!passwordMatches)
       throw new HttpException('Password is incorrect', HttpStatus.BAD_REQUEST);
 
-    const tokens = await this.getTokens(user.id, user.username);
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
-
-    return tokens;
-  }
-
-  async logout(userId: string) {
-    this.usersService.update(userId, { refreshToken: null });
-  }
-
-  async refreshTokens(userId: string, refreshToken: string) {
-    const user = await this.usersService.findById(userId);
-    if (!user || !user.refreshToken)
-      throw new HttpException('Access Denied', HttpStatus.FORBIDDEN);
-
-    const refreshTokenMatches = await compare(refreshToken, user.refreshToken);
-
-    if (!refreshTokenMatches)
-      throw new HttpException('Access Denied', HttpStatus.FORBIDDEN);
-
-    const tokens = await this.getTokens(user.id, user.username);
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
-    return tokens;
-  }
-
-  async updateRefreshToken(userId: string, refreshToken: string) {
-    const hashedRefreshToken = await hash(refreshToken);
-    await this.usersService.update(userId, {
-      refreshToken: hashedRefreshToken,
-    });
-  }
-
-  async getTokens(userId: string, username: string) {
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(
-        {
-          sub: userId,
-          username,
-        },
-        {
-          secret: jwtConstants.accessSecret,
-          expiresIn: '15m',
-        },
-      ),
-      this.jwtService.signAsync(
-        {
-          sub: userId,
-          username,
-        },
-        {
-          secret: jwtConstants.refreshSecret,
-          expiresIn: '7d',
-        },
-      ),
-    ]);
-    console.log(userId, username, accessToken, refreshToken);
+    const token = await this.getToken(user);
+    user.token = await hash(token);
 
     return {
-      accessToken,
-      refreshToken,
+      accessToken: token,
     };
+  }
+
+  async validateToken(token: string) {
+    const cleanToken = token.replace('Bearer ', '');
+    const userId = Buffer.from(cleanToken, 'base64').toString();
+    if (!userId) return false;
+
+    const header = await this.usersService.findById(userId);
+
+    return (await compare(cleanToken, header?.token ?? '')) ? header : null;
+  }
+
+  async getToken(user: User) {
+    return user.token ?? (await generate(user.id, constants.secret));
   }
 }

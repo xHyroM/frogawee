@@ -1,48 +1,59 @@
 import { Injectable } from '@nestjs/common';
 import { hash } from 'hash';
-
-export interface User {
-  id: string;
-  username: string;
-  password: string;
-  refreshToken?: string;
-}
+import { PrismaService } from 'src/prisma/prisma.service';
+import { User } from '@prisma/client';
 
 export type PartialUser = Omit<User, 'id' | 'refreshToken'>;
 
 @Injectable()
 export class UsersService {
-  private readonly users: User[] = [];
+  constructor(private prisma: PrismaService) {}
 
   async create(user: Omit<User, 'id' | 'refreshToken'>) {
     const data = {
       ...user,
+      cleanUsername: user.username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
       password: await hash(user.password),
-      id: this.users.length + 1 + '',
+      id: String(BigInt(Date.now()) + BigInt(1667073478)),
     };
 
-    this.users.push(data);
+    await this.prisma.user.create({
+      data: {
+        ...user,
+        password: await hash(user.password),
+        id: String(BigInt(Date.now()) + BigInt(1667073478)),
+      },
+    });
 
     return { ...data, password: null };
   }
 
   async findAll(): Promise<User[]> {
-    return this.users;
+    return this.prisma.user.findMany();
   }
 
   async findByUsername(username: string): Promise<User | undefined> {
-    return this.users.find((user) => user.username === username);
+    return this.prisma.user.findUnique({
+      where: {
+        cleanUsername: username.replace(/[^a-zA-Z0-9]/g, '').toLowerCase(),
+      },
+    });
   }
 
   async findById(id: string): Promise<User | undefined> {
-    return this.users.find((user) => user.id === id);
+    return this.prisma.user.findUnique({
+      where: {
+        id: id,
+      },
+    });
   }
 
   async update(id: string, data: Partial<User>) {
-    const found = await this.findById(id);
-
-    if (data.username) found.username = data.username;
-    if (data.password) found.password = await hash(data.password);
-    if (data.refreshToken) found.refreshToken = data.refreshToken;
+    this.prisma.user.update({
+      where: {
+        id: id,
+      },
+      data: data,
+    });
   }
 }
