@@ -8,10 +8,10 @@ export enum UserType {
   'Student' = 'STUDENT',
   'Teacher' = 'TEACHER',
 }
-export type PartialUser = Omit<User, 'id' | 'token' | 'classId'>;
+export type PartialUser = Omit<User, 'id' | 'token'>;
 
 @Injectable()
-export class UsersService {
+export class ClassesService {
   constructor(private prismaService: PrismaService) {}
 
   async create(user: PartialUser) {
@@ -49,27 +49,7 @@ export class UsersService {
     });
   }
 
-  async findById(id: string): Promise<
-    | {
-        id: string;
-        username: string;
-        type: string;
-      }
-    | undefined
-  > {
-    return this.prismaService.user.findUnique({
-      where: {
-        id: id,
-      },
-      select: {
-        id: true,
-        username: true,
-        type: true,
-      },
-    });
-  }
-
-  async $findById(id: string): Promise<User | undefined> {
+  async findById(id: string): Promise<User | undefined> {
     return this.prismaService.user.findUnique({
       where: {
         id: id,
@@ -80,7 +60,7 @@ export class UsersService {
   async update(id: string, data: Partial<User>) {
     delete data['id'];
 
-    const original = await this.$findById(id);
+    const original = await this.findById(id);
 
     try {
       return await this.prismaService.user.update({

@@ -1,4 +1,11 @@
-import { Controller, Get, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { AccessTokenGuard } from 'src/auth/guards/accessToken.guard';
 import { UsersService } from './users.service';
 
@@ -12,8 +19,20 @@ export class UsersController {
   }
 
   @UseGuards(AccessTokenGuard)
+  @Get('/search/:id')
+  findById(@Request() req) {
+    return this.usersService.findById(req.params.id);
+  }
+
+  @UseGuards(AccessTokenGuard)
   @Get('@me')
-  me(@Request() req) {
+  getMe(@Request() req) {
     return req.user;
+  }
+
+  @UseGuards(AccessTokenGuard)
+  @Patch('@me')
+  updateMe(@Request() req, @Body() body) {
+    return this.usersService.update(req.user.id, body);
   }
 }
